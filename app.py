@@ -1,16 +1,31 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash, check_password_hash
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///fallback.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'your-fallback-secret')
 
 db = SQLAlchemy(app)
+jwt = JWTManager(app)
 
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 
 class Juice(db.Model):
@@ -23,6 +38,7 @@ class Purchase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     juice_id = db.Column(db.Integer, db.ForeignKey('juice.id'), nullable=False)
+    address = db.Column(db.String(255), nullable=False)
 
     user = db.Relationship('User', backref=db.backref('purchases', lazy=True))
     juice = db.Relationship('Juice', backref=db.backref('purchases', lazy=True))
@@ -30,6 +46,18 @@ class Purchase(db.Model):
 
 with app.app_context():
     db.create_all()
+
+
+@app.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    if User.query.filter_by(username=data['username']).first():
+        return jsonify({'error': 'Username already exists'}), 400
+
+    user = User(username=data['username'])
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({'message': 'Successfully registered'}), 201
 
 
 @app.route('/user', methods=['POST'])
