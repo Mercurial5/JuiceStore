@@ -60,14 +60,16 @@ def register():
     return jsonify({'message': 'Successfully registered'}), 201
 
 
-@app.route('/user', methods=['POST'])
-def add_user():
+@app.route('/login', methods=['POST'])
+def login():
     data = request.get_json()
-    user = User(name=data['name'])
-    db.session.add(user)
-    db.session.commit()
+    user = User.query.filter_by(username=data['username']).first()
 
-    return jsonify({'message': 'User added', 'id': user.id})
+    if not user or not user.check_password(data['password']):
+        return jsonify({'error': 'Invalid credentials'}), 401
+
+    token = create_access_token(identity=user.id)
+    return jsonify({'access_token': token})
 
 
 @app.route('/juice', methods=['POST'])
@@ -79,39 +81,46 @@ def add_juice():
 
     return jsonify({'message': 'Juice added', 'id': juice.id})
 
-
-@app.route('/purchase', methods=['POST'])
-def add_purchase():
+@app.route('/delivery', methods=['POST'])
+@jwt_required()
+def make_delivery():
+    user_id = get_jwt_identity()
     data = request.get_json()
-    purchase = Purchase(user_id=data['user_id'], juice_id=data['juice_id'])
-    db.session.add(purchase)
+
+    delivery = Purchase(
+        user_id = user_id,
+        juice_id=data['juice_id'],
+        address=data['address']
+    )
+
+    db.session.add(delivery)
     db.session.commit()
+    return jsonify({'message': 'Delivery created', 'id': delivery.id})
 
-    return jsonify({'message': 'Purchase completed', 'id': purchase.id})
+@app.route('/my_deliveries', methods=['GET'])
+@jwt_required()
+def my_delivery():
+    user_id = get_jwt_identity()
+    deliveries = Purchase.query.filter_by(user_id=user_id).all()
 
-
-@app.route('/purchases', methods=['GET'])
-def list_purchases():
-    purchases = Purchase.query.all()
     result = []
-    for p in purchases:
+    for deli in deliveries:
         result.append({
-            'id': p.id,
-            'user': p.user.name,
-            'juice': f"{p.juice.flavor},{p.juice.volume}L"
+            'id': deli.id,
+            'juice': f"{deli.juice.flavor}{deli.juice.volume}",
+            'address': deli.address
         })
     return jsonify(result)
 
-
-@app.route('/delete/<int:user_id>', methods=['DELETE'])
-def delete_entry(user_id):
-    user = User.query.get(user_id)
-    if not user:
-        return jsonify({'error': 'User not found'}), 404
-
-    db.session.delete(user)
-    db.session.commit()
-    return jsonify({'message': f'User {user_id} deleted'}), 200
+# @app.route('/delete/<int:user_id>', methods=['DELETE'])
+# def delete_entry(user_id):
+#     user = User.query.get(user_id)
+#     if not user:
+#         return jsonify({'error': 'User not found'}), 404
+#
+#     db.session.delete(user)
+#     db.session.commit()
+#     return jsonify({'message': f'User {user_id} deleted'}), 200
 
 
 @app.route('/')
