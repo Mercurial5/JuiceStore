@@ -6,8 +6,8 @@ from database.settings import DatabaseSettings
 
 class Database:
     def __init__(self, settings: DatabaseSettings):
-        engine = create_engine(settings.url, echo=True, pool_pre_ping=True)
-        self._session_maker = sessionmaker(bind=engine)
+        self.engine = create_engine(settings.url, echo=True, pool_pre_ping=True)
+        self._session_maker = sessionmaker(bind=self.engine)
 
     @property
     def session(self) -> Session:
