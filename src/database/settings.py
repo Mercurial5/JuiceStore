@@ -11,4 +11,3 @@ class DatabaseSettings(BaseModel):
     @property
     def url(self):
         return f'postgresql+psycopg2://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}'
-
