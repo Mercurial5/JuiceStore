@@ -1,0 +1,1 @@
+from juices.repositories.repositories import JuiceRepository

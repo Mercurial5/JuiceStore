@@ -1,7 +1,7 @@
-from flask import Blueprint, Response, request, current_app
-from flask_pydantic import validate
 from typing import Tuple
 
+from flask import Blueprint, Response, request, current_app
+from flask_pydantic import validate
 from pydantic import ValidationError
 
 from juices.schemas import JuiceRequestCreate, JuiceRequestPriceUpdate, PaginationRequest

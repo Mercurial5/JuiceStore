@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Dict
+
 from juices.schemas import JuiceRequestCreate, JuiceRequestPriceUpdate
 
 
