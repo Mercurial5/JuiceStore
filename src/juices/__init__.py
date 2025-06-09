@@ -2,9 +2,9 @@ import os
 
 from dotenv import load_dotenv
 
-from .model import Juice
-from ..database.database import Database
-from ..database.settings import DatabaseSettings
+from database.database import Database
+from database.settings import DatabaseSettings
+from juices.models import Juice
 
 
 def get_database():
